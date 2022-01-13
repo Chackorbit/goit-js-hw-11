@@ -5,8 +5,6 @@ import SimpleLightbox from 'simplelightbox';
 import '../node_modules/simplelightbox/dist/simple-lightbox.min.css';
 import { addHtml } from './js/add-html';
 
-// Your API key: 25149934-751328f61e2da43ec1e4df823
-
 const refs = {
   searchForm: document.querySelector('.search-form'),
   loadMoreBtn: document.querySelector('.load-more'),
@@ -17,11 +15,14 @@ const refs = {
 let numberPages = 1;
 let searchValue = '';
 
+// console.log(refs.loadMoreBtn.disabled);
+
 refs.searchForm.addEventListener('submit', onSearch);
 refs.loadMoreBtn.addEventListener('click', onLoadMore);
 
 function onSearch(e) {
   e.preventDefault();
+  refs.loadMoreBtn.disabled = true;
 
   let sendValue = e.currentTarget.searchQuery.value;
   searchValue = sendValue.trim();
@@ -42,10 +43,12 @@ function onSearch(e) {
 }
 
 function onLoadMore() {
+  refs.loadMoreBtn.innerHTML = 'Loading';
+  refs.loadMoreBtn.disabled = true;
+
   numberPages += 1;
 
   loadNewImg(searchValue, numberPages);
-  scroll();
 }
 
 function clearArticlesContainer() {
@@ -54,14 +57,29 @@ function clearArticlesContainer() {
 
 function loadNewImg(sendValue, numberPages) {
   fetchArticles(sendValue, numberPages).then(arrImg => {
-    Notiflix.Notify.success(`Hooray! Your next 40 images.`);
+    if (arrImg.hits.length < 40) {
+      refs.divLoadmoreBtn.classList.add('visually-hidden');
+      Notiflix.Notify.success(`Hooray! Your next ${arrImg.hits.length} images.`);
+    }
+    if (arrImg.hits.length >= 40) {
+      Notiflix.Notify.success(`Hooray! Your next 40 images.`);
+    }
+
     refs.gallery.innerHTML += addHtml(arrImg.hits).join('');
+    loading();
+    scroll();
+
     let gallerySet = new SimpleLightbox('.gallery__item', {
       captionPosition: 'bottom',
       captionDelay: 250,
     });
     gallerySet.on('show.simplelightbox');
   });
+}
+
+function loading() {
+  refs.loadMoreBtn.disabled = false;
+  refs.loadMoreBtn.innerHTML = 'Load more';
 }
 
 function appendImgMarkup(sendValue, numberPages) {
@@ -71,11 +89,14 @@ function appendImgMarkup(sendValue, numberPages) {
         Notiflix.Notify.warning(`Hooray! We found ${arrImg.hits} images.`);
         return;
       }
-      if (arrImg.totalHits === 0) {
+      if (arrImg.totalHits === 0 || arrImg.hits.length < 40) {
         refs.divLoadmoreBtn.classList.add('visually-hidden');
       }
+
       Notiflix.Notify.success(`Hooray! We found ${arrImg.totalHits} images.`);
       refs.gallery.innerHTML += addHtml(arrImg.hits).join('');
+      refs.loadMoreBtn.disabled = false;
+
       let gallerySet = new SimpleLightbox('.gallery__item', {
         captionPosition: 'bottom',
         captionDelay: 250,
